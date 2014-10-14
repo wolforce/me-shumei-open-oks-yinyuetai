@@ -56,6 +56,7 @@ public class Signin extends CommonData {
             //具体信息可参考作者博文：http://shumei.me/exp/node-js-crack-the-javascript-login-encryption-of-yinyuetai.html
             String data = "yinyuetai|@@|login_time_crack|@@|{\"logindata\":\"" + user + pwd + "\"}";
             jscrackUrl += "data=" + it.sauronsoftware.base64.Base64.encode(data);
+            System.out.println(jscrackUrl);
             res = Jsoup.connect(jscrackUrl).userAgent(UA_ANDROID).timeout(TIME_OUT).ignoreContentType(true).method(Method.GET).execute();
             JSONObject jsonObj = new JSONObject(res.body());
             String _t = jsonObj.getString("_t");
@@ -76,9 +77,10 @@ public class Signin extends CommonData {
             try {
                 //以登录返回的JSON字符串创建JSONObject
                 jsonObj = new JSONObject(res.body());
-                boolean logined = jsonObj.getBoolean("logined");
+                boolean logined = jsonObj.optBoolean("logined");
                 if(logined)
                 {
+                    String uid = jsonObj.optString("userId");
                     //破解签到加密串
                     data = "yinyuetai|@@|signin_time_crack|@@|{\"logindata\":\"needn't to post data\"}";
                     jscrackUrl = "http://oks.shumei.me/jscrack.php?data=" + it.sauronsoftware.base64.Base64.encode(data);
@@ -90,11 +92,16 @@ public class Signin extends CommonData {
                     cookies.put("p2", _p2);
                     cookies.put("Hm_lvt_" + getHMLVTCookie(cookies), System.currentTimeMillis() + "");
                     
+                    String iyinyuetaiUrl = "http://i.yinyuetai.com/" + uid;
+                    res = Jsoup.connect(iyinyuetaiUrl).userAgent(UA_CHROME).cookies(cookies).timeout(TIME_OUT).referrer(signinUrl).method(Method.GET).followRedirects(true).ignoreContentType(true).execute();
+                    cookies.putAll(res.cookies());
+                    
                     signinUrl = "http://i.yinyuetai.com/i/sign-in?_t=" + _t + "&_p1=" + _p1 + "&_p2=" + _p2;
-                    res = Jsoup.connect(signinUrl).userAgent(UA_CHROME).header("X-Requested-With", "XMLHttpRequest").header("X-Request", "JSON").cookies(cookies).timeout(TIME_OUT).referrer(signinUrl).method(Method.POST).ignoreContentType(true).execute();
+                    res = Jsoup.connect(signinUrl).userAgent(UA_CHROME).header("X-Requested-With", "XMLHttpRequest").header("X-Request", "JSON").cookies(cookies).timeout(TIME_OUT).referrer("http://i.yinyuetai.com/5352618").method(Method.POST).ignoreContentType(true).execute();
                     System.out.println(res.body());
                     //{"message":"您今天已经打过卡了","error":true,"logined":true}
-                    //{"message":"打卡成功并给您增加20个积分","error":false,"logined":true}
+                    //{"message":"打卡成功并给您增加30个积分","error":false,"logined":true,"resignInDays":3,"signIn":{"id":3062123456,"credits":30,"coins":0,"exps":30,"continuousDays":1,"signTotal":615879,"signReward":false,"description":""}}
+                    //{"message":"打卡失败，请刷新我的家主页，并等待内容加载完毕后再执行打卡操作","error":true,"logined":true}
                     jsonObj = new JSONObject(res.body());
                     String message = jsonObj.getString("message");
                     
